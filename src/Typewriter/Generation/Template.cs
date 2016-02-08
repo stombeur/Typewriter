@@ -198,29 +198,49 @@ namespace Typewriter.Generation
 
         private string GetMappedSourceFile(ProjectItem item)
         {
-            if (item == null) return null;
+            try
+            {
+                if (item == null) return null;
 
-            var value = item.Properties.Item("CustomToolNamespace").Value as string;
-            var path = string.IsNullOrWhiteSpace(value) ? null : Path.GetFullPath(Path.Combine(_projectPath, value));
+                var value = item.Properties.Item("CustomToolNamespace").Value as string;
+                var path = string.IsNullOrWhiteSpace(value) ? null : Path.GetFullPath(Path.Combine(_projectPath, value));
 
-            return path;
+                return path;
+            }
+            catch (Exception ex)
+            {
+                Log.Error("error in GetMappedSourceFile: " + ex.Message);
+                return null;
+            }
         }
 
         private void SetMappedSourceFile(ProjectItem item, string path)
         {
-            if (_projectItem == null) throw new ArgumentException("item");
-            if (path == null) throw new ArgumentException("path");
-
-            var pathUri = new Uri(path);
-            var folderUri = new Uri(_projectPath.Trim(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
-            var relativeSourcePath = Uri.UnescapeDataString(folderUri.MakeRelativeUri(pathUri).ToString().Replace('/', Path.DirectorySeparatorChar));
-
-            if (relativeSourcePath.Equals(GetMappedSourceFile(item), StringComparison.InvariantCultureIgnoreCase) == false)
+            try
             {
-                var property = item.Properties.Item("CustomToolNamespace");
-                if (property == null) throw new InvalidOperationException("Cannot find CustomToolNamespace property");
+                if (_projectItem == null) throw new ArgumentException("item");
+                if (path == null) throw new ArgumentException("path");
 
-                property.Value = relativeSourcePath;
+                var pathUri = new Uri(path);
+                var folderUri = new Uri(_projectPath.Trim(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
+                var relativeSourcePath =
+                    Uri.UnescapeDataString(folderUri.MakeRelativeUri(pathUri)
+                        .ToString()
+                        .Replace('/', Path.DirectorySeparatorChar));
+
+                if (relativeSourcePath.Equals(GetMappedSourceFile(item), StringComparison.InvariantCultureIgnoreCase) ==
+                    false)
+                {
+                    var property = item.Properties.Item("CustomToolNamespace");
+                    if (property == null)
+                        throw new InvalidOperationException("Cannot find CustomToolNamespace property");
+
+                    property.Value = relativeSourcePath;
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error("error in SetMappedSourceFile: " + ex.Message);
             }
         }
 
